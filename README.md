@@ -1,2 +1,2 @@
 # Filesystem Information
-Viewing filesystem information using Python.
+Viewing system information for Windows using Python.
