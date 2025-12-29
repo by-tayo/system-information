@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
 """
-Windows Task-Manager-style info (console view).
+Windows Task-Manager-style info
 
 Covers:
-- Processes summary (like "Processes" tab)
-- Process details (like "Details" tab)
+- Processes summary
+- Process details
 - Performance summary (CPU, Memory, Disk, Network)
-- Users (like "Users" tab)
-- Services (like "Services" tab)
+- Users
+- Services
 
 Requirements:
     - Run on Windows
@@ -17,12 +16,6 @@ Requirements:
 import platform
 import psutil
 from typing import List
-
-
-# ---------- guard: Windows only ----------
-
-if platform.system() != "Windows":
-    raise SystemExit("This script is intended to run on Windows only.")
 
 
 # ---------- helpers ----------
@@ -64,7 +57,7 @@ def print_performance_summary():
     print()
 
 
-# ---------- processes summary (Processes tab feel) ----------
+# ---------- processes summary ----------
 
 def get_top_processes(limit: int = 10):
     # Prime CPU% to get meaningful numbers
@@ -98,16 +91,14 @@ def get_top_processes(limit: int = 10):
 
     procs.sort(key=lambda x: x["cpu_percent"], reverse=True)
     return procs[:limit]
-
-
-def print_processes_summary(limit: int = 10):
-    print(f"=== Processes (top {limit} by CPU) ===")
-    top = get_top_processes(limit)
+    
+def print_processes_summary():
+    print("=== Processes (all) ===")
+    top = get_top_processes(limit=10**9)  # effectively "no limit"
     if not top:
         print("No processes found.\n")
         return
 
-    # Roughly like Processes tab: Name, PID, User, CPU, Memory
     for p in top:
         print(
             f"PID {p['pid']:<6} "
@@ -119,9 +110,10 @@ def print_processes_summary(limit: int = 10):
     print()
 
 
-# ---------- details (Details tab style) ----------
 
-def print_process_details(limit: int = 25):
+# ---------- details ----------
+
+def print_process_details():
     """
     Approximate Task Manager 'Details' tab:
       Name, PID, Status, User name, CPU, Memory (RSS), Description.
@@ -134,7 +126,7 @@ def print_process_details(limit: int = 25):
             pass
     psutil.cpu_percent(interval=0.5)
 
-    rows: List[dict] = []
+    rows = []
     for p in psutil.process_iter(
         ['pid', 'name', 'username', 'status', 'cpu_percent', 'memory_info']
     ):
@@ -154,15 +146,13 @@ def print_process_details(limit: int = 25):
                 "username": info.get("username") or "",
                 "cpu_percent": info.get("cpu_percent", 0.0),
                 "memory_rss_gib": format_gib(rss),
-                # Simple description: same as name; could be extended with exe/cmdline
                 "description": info.get("name") or "",
             }
         )
 
     rows.sort(key=lambda x: x["cpu_percent"], reverse=True)
-    rows = rows[:limit]
 
-    print(f"=== Details (top {limit} by CPU) ===")
+    print("=== Details (all processes, sorted by CPU) ===")
     print("Name                            PID    Status      User              CPU%   Mem (RSS)   Description")
     print("-" * 100)
     for r in rows:
@@ -178,7 +168,7 @@ def print_process_details(limit: int = 25):
     print()
 
 
-# ---------- users (Users tab) ----------
+# ---------- users ----------
 
 def print_users():
     print("=== Users ===")
@@ -199,22 +189,21 @@ def print_users():
 
 # ---------- services (Services tab) ----------
 
-def print_services(limit: int = 30):
+def print_services():
     """
     Approximate Services tab:
-      Name, PID, Description (display_name), Status, Group (N/A here).
+      Name, PID, Description (display_name), Status.
     """
-    print(f"=== Services (showing first {limit}) ===")
+    print("=== Services (all) ===")
     try:
         services = list(psutil.win_service_iter())
     except Exception as e:
         print(f"Error reading services: {e}\n")
         return
 
-    # Sort by name for deterministic output
     services.sort(key=lambda s: s.name().lower())
 
-    for s in services[:limit]:
+    for s in services:
         try:
             info = s.as_dict()
         except Exception:
@@ -238,10 +227,10 @@ def print_services(limit: int = 30):
 
 def main():
     print_performance_summary()
-    print_processes_summary(limit=10)
-    print_process_details(limit=25)
+    print_processes_summary()   # shows all processes
+    print_process_details()     # shows all processes in Details view
     print_users()
-    print_services(limit=30)
+    print_services()            # shows all services
 
 
 if __name__ == "__main__":
